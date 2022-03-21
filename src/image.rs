@@ -1,5 +1,5 @@
 use exr::prelude::Error as ExrError;
-use glam::Vec3;
+use glam::{Vec3, Vec4};
 use std::io::Error as IoError;
 use std::path::Path;
 use std::result::Result;
@@ -51,12 +51,13 @@ impl Image {
     #[inline(never)]
     fn save_inner(&self, path: &Path) -> Result<(), Error> {
         exr::prelude::write_rgba_file(path, self.width, self.height, |x, y| {
-            self.get(x, self.height - y - 1).as_tuple()
+            let vec = self.get(x, self.height - y - 1);
+            (vec.x, vec.y, vec.z, vec.w)
         })?;
         Ok(())
     }
 
-    fn get(&self, x: usize, y: usize) -> Rgba {
+    fn get(&self, x: usize, y: usize) -> Vec4 {
         let chunks_x = self.width / CHUNK_DIM;
         let chunk_x = x / CHUNK_DIM;
         let chunk_y = y / CHUNK_DIM;
@@ -81,10 +82,10 @@ impl Image {
 }
 
 #[derive(Debug, Default, Copy, Clone)]
-pub struct Chunk([[Rgba; CHUNK_DIM]; CHUNK_DIM]);
+pub struct Chunk([[Vec4; CHUNK_DIM]; CHUNK_DIM]);
 
 impl std::ops::Index<usize> for Chunk {
-    type Output = [Rgba; CHUNK_DIM];
+    type Output = [Vec4; CHUNK_DIM];
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.0[index]
@@ -94,60 +95,5 @@ impl std::ops::Index<usize> for Chunk {
 impl std::ops::IndexMut<usize> for Chunk {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.0[index]
-    }
-}
-
-#[derive(Debug, Default, Copy, Clone)]
-pub struct Rgba {
-    pub r: f32,
-    pub g: f32,
-    pub b: f32,
-    pub a: f32,
-}
-
-impl Rgba {
-    pub fn rgb(r: f32, g: f32, b: f32) -> Self {
-        Self { r, g, b, a: 1.0 }
-    }
-
-    pub fn as_tuple(&self) -> (f32, f32, f32, f32) {
-        (self.r, self.g, self.b, self.a)
-    }
-}
-
-impl From<Vec3> for Rgba {
-    fn from(vec: Vec3) -> Self {
-        Self {
-            r: vec.x,
-            g: vec.y,
-            b: vec.z,
-            a: 1.0,
-        }
-    }
-}
-
-impl std::ops::Index<usize> for Rgba {
-    type Output = f32;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        match index {
-            0 => &self.r,
-            1 => &self.g,
-            2 => &self.b,
-            3 => &self.a,
-            _ => panic!(),
-        }
-    }
-}
-
-impl std::ops::IndexMut<usize> for Rgba {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        match index {
-            0 => &mut self.r,
-            1 => &mut self.g,
-            2 => &mut self.b,
-            3 => &mut self.a,
-            _ => panic!(),
-        }
     }
 }

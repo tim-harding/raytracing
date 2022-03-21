@@ -1,13 +1,17 @@
 mod image;
 mod ray;
 
-use glam::Vec3;
-use image::{Error, Image, Rgba, CHUNK_DIM};
+use rand::prelude::*;
+
+use glam::{Vec3, Vec4};
+use image::{Error, Image, CHUNK_DIM};
 use ray::Ray;
 
+const W: usize = 1024;
+const H: usize = 512;
+
 fn main() -> Result<(), Error> {
-    const W: usize = 1024;
-    const H: usize = 512;
+    let mut rand = rand::rngs::SmallRng::seed_from_u64(7);
     let mut image = Image::new(W, H);
     let viewport_height = 2.0f32;
     let viewport_width = 2.0 * image.width() as f32 / image.height() as f32;
@@ -25,7 +29,7 @@ fn main() -> Result<(), Error> {
                 let v = (y_base + y_offset) as f32 / H as f32;
                 let dir = lower_left + horizontal * u + vertical * v;
                 let ray = Ray::new(origin, dir);
-                chunk[y_offset][x_offset] = vector_color(ray)
+                chunk[y_offset][x_offset] = ray_color(ray, &mut rand);
             }
         }
     }
@@ -33,7 +37,7 @@ fn main() -> Result<(), Error> {
     Ok(())
 }
 
-fn vector_color(ray: Ray) -> Rgba {
+fn ray_color(ray: Ray, rand: &mut SmallRng) -> Vec4 {
     let spheres = vec![
         Sphere {
             center: Vec3::new(0.0, 0.0, -1.0),
@@ -46,10 +50,13 @@ fn vector_color(ray: Ray) -> Rgba {
     ];
     let hit = spheres.iter().find_map(|&sphere| sphere.hit(ray));
     match hit {
-        Some(hit) => (0.5 * hit.normal + Vec3::new(0.5, 0.5, 0.5)).into(),
+        Some(hit) => {
+            let new_direction = hit.normal + rand_on_unit_sphere(rand);
+            Vec4::new(0.5, 0.5, 0.5, 1.0) * ray_color(Ray::new(hit.point, new_direction), rand)
+        }
         None => {
             let t = 0.5 * ray.direction.normalize().y + 0.5;
-            Rgba::rgb(1.0 - t + 0.5 * t, 1.0 - t + 0.7 * t, 1.0)
+            Vec4::new(1.0 - t + 0.5 * t, 1.0 - t + 0.7 * t, 1.0, 1.0)
         }
     }
 }
@@ -71,11 +78,16 @@ impl Sphere {
         let b = 2.0 * oc.dot(ray.direction);
         let c = oc.length_squared() - self.radius * self.radius;
         let discriminant = b * b - 4.0 * a * c;
-        if discriminant > 0.0 {
+        if discriminant > 0.0001 {
             let distance = (-b - discriminant.sqrt()) / 2.0 / a;
+            let point = ray.at(distance);
             if distance > 0.0 {
-                let normal = (ray.at(distance) - self.center).normalize();
-                Some(SphereHit { normal, distance })
+                let normal = (point - self.center).normalize();
+                Some(SphereHit {
+                    point,
+                    normal,
+                    distance,
+                })
             } else {
                 None
             }
@@ -85,7 +97,20 @@ impl Sphere {
     }
 }
 
+fn rand_on_unit_sphere(rand: &mut SmallRng) -> Vec3 {
+    let mut v = candidate_unit_vector(rand);
+    while v.length_squared() > 1.0 {
+        v = candidate_unit_vector(rand);
+    }
+    v.normalize()
+}
+
+fn candidate_unit_vector(rand: &mut SmallRng) -> Vec3 {
+    Vec3::new(rand.gen(), rand.gen(), rand.gen()) * 2.0 - 1.0
+}
+
 struct SphereHit {
+    pub point: Vec3,
     pub normal: Vec3,
     pub distance: f32,
 }
