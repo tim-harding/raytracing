@@ -1,4 +1,5 @@
 use exr::prelude::Error as ExrError;
+use glam::Vec3;
 use std::io::Error as IoError;
 use std::path::Path;
 use std::result::Result;
@@ -50,7 +51,7 @@ impl Image {
     #[inline(never)]
     fn save_inner(&self, path: &Path) -> Result<(), Error> {
         exr::prelude::write_rgba_file(path, self.width, self.height, |x, y| {
-            self.get(x, y).as_tuple()
+            self.get(x, self.height - y - 1).as_tuple()
         })?;
         Ok(())
     }
@@ -111,6 +112,17 @@ impl Rgba {
 
     pub fn as_tuple(&self) -> (f32, f32, f32, f32) {
         (self.r, self.g, self.b, self.a)
+    }
+}
+
+impl From<Vec3> for Rgba {
+    fn from(vec: Vec3) -> Self {
+        Self {
+            r: vec.x,
+            g: vec.y,
+            b: vec.z,
+            a: 1.0,
+        }
     }
 }
 
