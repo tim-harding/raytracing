@@ -44,11 +44,10 @@ fn vector_color(ray: Ray) -> Rgba {
             radius: 100.0,
         },
     ];
-    let t = spheres.iter().find_map(|&sphere| hit_sphere(ray, sphere));
-    match t {
-        Some(t) => {
-            let n = (ray.at(t) + Vec3::new(0.0, 0.0, 1.0)).normalize();
-            (0.5 * n + Vec3::new(0.5, 0.5, 0.5)).into()
+    let hit = spheres.iter().find_map(|&sphere| sphere.hit(ray));
+    match hit {
+        Some(hit) => {
+            (0.5 * hit.normal + Vec3::new(0.5, 0.5, 0.5)).into()
         }
         None => {
             let t = 0.5 * ray.direction.normalize().y + 0.5;
@@ -63,15 +62,30 @@ struct Sphere {
     pub radius: f32,
 }
 
-fn hit_sphere(ray: Ray, sphere: Sphere) -> Option<f32> {
-    let oc = ray.origin - sphere.center;
-    let a = ray.direction.length_squared();
-    let b = 2.0 * oc.dot(ray.direction);
-    let c = oc.length_squared() - sphere.radius * sphere.radius;
-    let discriminant = b * b - 4.0 * a * c;
-    if discriminant > 0.0 {
-        Some((-b - discriminant.sqrt()) / 2.0 / a)
-    } else {
-        None
+impl Sphere {
+    pub fn new(center: Vec3, radius: f32) -> Self {
+        Self { center, radius }
     }
+
+    pub fn hit(&self, ray: Ray) -> Option<SphereHit> {
+        let oc = ray.origin - self.center;
+        let a = ray.direction.length_squared();
+        let b = 2.0 * oc.dot(ray.direction);
+        let c = oc.length_squared() - self.radius * self.radius;
+        let discriminant = b * b - 4.0 * a * c;
+        if discriminant > 0.0 {
+            let distance = (-b - discriminant.sqrt()) / 2.0 / a;
+            let normal = (ray.at(distance) - self.center).normalize();
+            Some(SphereHit {
+                normal, distance
+            })
+        } else {
+            None
+        }
+    }
+}
+
+struct SphereHit {
+    pub normal: Vec3,
+    pub distance: f32,
 }
