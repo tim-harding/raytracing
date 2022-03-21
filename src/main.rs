@@ -46,9 +46,7 @@ fn vector_color(ray: Ray) -> Rgba {
     ];
     let hit = spheres.iter().find_map(|&sphere| sphere.hit(ray));
     match hit {
-        Some(hit) => {
-            (0.5 * hit.normal + Vec3::new(0.5, 0.5, 0.5)).into()
-        }
+        Some(hit) => (0.5 * hit.normal + Vec3::new(0.5, 0.5, 0.5)).into(),
         None => {
             let t = 0.5 * ray.direction.normalize().y + 0.5;
             Rgba::rgb(1.0 - t + 0.5 * t, 1.0 - t + 0.7 * t, 1.0)
@@ -75,10 +73,12 @@ impl Sphere {
         let discriminant = b * b - 4.0 * a * c;
         if discriminant > 0.0 {
             let distance = (-b - discriminant.sqrt()) / 2.0 / a;
-            let normal = (ray.at(distance) - self.center).normalize();
-            Some(SphereHit {
-                normal, distance
-            })
+            if distance > 0.0 {
+                let normal = (ray.at(distance) - self.center).normalize();
+                Some(SphereHit { normal, distance })
+            } else {
+                None
+            }
         } else {
             None
         }
