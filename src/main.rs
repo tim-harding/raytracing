@@ -25,11 +25,16 @@ fn main() -> Result<(), Error> {
         let x_base = (i % CHUNK_DIM) * CHUNK_DIM;
         for y_offset in 0..CHUNK_DIM {
             for x_offset in 0..CHUNK_DIM {
-                let u = (x_base + x_offset) as f32 / W as f32;
-                let v = (y_base + y_offset) as f32 / H as f32;
-                let dir = lower_left + horizontal * u + vertical * v;
-                let ray = Ray::new(origin, dir);
-                chunk[y_offset][x_offset] = ray_color(ray, &mut rand);
+                const SAMPLES: usize = 16;
+                let mut acc = Vec4::ZERO;
+                for _ in 0..SAMPLES {
+                    let u = ((x_base + x_offset) as f32 + rand.gen::<f32>()) / W as f32;
+                    let v = ((y_base + y_offset) as f32 + rand.gen::<f32>()) / H as f32;
+                    let dir = lower_left + horizontal * u + vertical * v;
+                    let ray = Ray::new(origin, dir);
+                    acc += ray_color(ray, &mut rand) / SAMPLES as f32;
+                }
+                chunk[y_offset][x_offset] = acc;
             }
         }
     }
@@ -106,7 +111,11 @@ fn rand_on_unit_sphere(rand: &mut SmallRng) -> Vec3 {
 }
 
 fn candidate_unit_vector(rand: &mut SmallRng) -> Vec3 {
-    Vec3::new(rand.gen(), rand.gen(), rand.gen()) * 2.0 - 1.0
+    random_vector(rand) * 2.0 - 1.0
+}
+
+fn random_vector(rand: &mut SmallRng) -> Vec3 {
+    Vec3::new(rand.gen(), rand.gen(), rand.gen())
 }
 
 struct SphereHit {
