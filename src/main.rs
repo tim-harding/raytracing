@@ -1,7 +1,7 @@
 mod image;
 mod ray;
 
-use glam::{Vec3, Vec3Swizzles};
+use glam::Vec3;
 use image::{Error, Image, Rgba, CHUNK_DIM};
 use ray::Ray;
 
@@ -34,11 +34,17 @@ fn main() -> Result<(), Error> {
 }
 
 fn vector_color(ray: Ray) -> Rgba {
-    let sphere = Sphere {
-        center: Vec3::new(0.0, 0.0, -1.0),
-        radius: 0.5,
-    };
-    let t = hit_sphere(ray, sphere);
+    let spheres = vec![
+        Sphere {
+            center: Vec3::new(0.0, 0.0, -1.0),
+            radius: 0.5,
+        },
+        Sphere {
+            center: Vec3::new(0.0, -100.5, -1.0),
+            radius: 100.0,
+        },
+    ];
+    let t = spheres.iter().find_map(|&sphere| hit_sphere(ray, sphere));
     match t {
         Some(t) => {
             let n = (ray.at(t) + Vec3::new(0.0, 0.0, 1.0)).normalize();
@@ -51,9 +57,10 @@ fn vector_color(ray: Ray) -> Rgba {
     }
 }
 
+#[derive(Debug, Default, Clone, Copy)]
 struct Sphere {
-    center: Vec3,
-    radius: f32,
+    pub center: Vec3,
+    pub radius: f32,
 }
 
 fn hit_sphere(ray: Ray, sphere: Sphere) -> Option<f32> {
