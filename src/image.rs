@@ -1,9 +1,7 @@
 use exr::prelude::Error as ExrError;
-use std::collections::btree_map::IterMut;
 use std::io::Error as IoError;
 use std::path::Path;
 use std::result::Result;
-use std::sync::{PoisonError, RwLock, RwLockReadGuard};
 use thiserror::Error;
 
 const CHUNK_DIM: usize = 32;
@@ -14,14 +12,6 @@ pub enum Error {
     ExrSave(#[from] IoError),
     #[error("Unhandled EXR error")]
     ExrOther,
-    #[error("Could not read lock")]
-    ReadLock,
-}
-
-impl From<PoisonError<RwLockReadGuard<'_, Chunk>>> for Error {
-    fn from(_: PoisonError<RwLockReadGuard<'_, Chunk>>) -> Self {
-        Error::ReadLock
-    }
 }
 
 impl From<ExrError> for Error {
@@ -35,7 +25,7 @@ impl From<ExrError> for Error {
 
 #[derive(Debug, Default)]
 pub struct Image {
-    data: Vec<RwLock<Chunk>>,
+    data: Vec<Chunk>,
     width: usize,
     height: usize,
 }
@@ -45,10 +35,7 @@ impl Image {
         let chunks_x = width / CHUNK_DIM + 1;
         let chunks_y = height / CHUNK_DIM + 1;
         let chunks = chunks_x * chunks_y;
-        let mut data = Vec::with_capacity(chunks);
-        for _ in 0..chunks {
-            data.push(RwLock::new(Chunk::default()));
-        }
+        let data = vec![Chunk::default(); chunks];
         Self {
             data,
             width,
@@ -63,23 +50,23 @@ impl Image {
     #[inline(never)]
     fn save_inner(&self, path: &Path) -> Result<(), Error> {
         exr::prelude::write_rgba_file(path, self.width, self.height, |x, y| {
-            self.get(x, y).unwrap_or(Rgba::default()).as_tuple()
+            self.get(x, y).as_tuple()
         })?;
         Ok(())
     }
 
-    fn get(&self, x: usize, y: usize) -> Result<Rgba, Error> {
+    fn get(&self, x: usize, y: usize) -> Rgba {
         let chunks_x = self.width / CHUNK_DIM;
         let chunk_x = x / CHUNK_DIM;
         let chunk_y = y / CHUNK_DIM;
         let index = chunk_y * chunks_x + chunk_x;
-        let chunk = self.data[index].read()?;
+        let chunk = self.data[index];
         let local_x = x % CHUNK_DIM;
         let local_y = y % CHUNK_DIM;
-        Ok(chunk.0[local_y][local_x])
+        chunk.0[local_y][local_x]
     }
 
-    pub fn chunks_mut(&mut self) -> std::slice::IterMut<RwLock<Chunk>> {
+    pub fn chunks_mut(&mut self) -> std::slice::IterMut<Chunk> {
         self.data.iter_mut()
     }
 }
