@@ -3,6 +3,7 @@ mod ray;
 
 use glam::Vec3;
 use image::{Error, Image, Rgba, CHUNK_DIM};
+use ray::Ray;
 
 fn main() -> Result<(), Error> {
     const W: usize = 1024;
@@ -14,6 +15,7 @@ fn main() -> Result<(), Error> {
     let horizontal = Vec3::new(viewport_width, 0.0, 0.0);
     let vertical = Vec3::new(0.0, viewport_height, 0.0);
     let lower_left = Vec3::new(-viewport_width / 2.0, -viewport_height / 2.0, -focal_length);
+    let origin = Vec3::new(0.0, 0.0, 0.0);
     for (i, chunk) in image.chunks_mut().enumerate() {
         let y_base = (i / CHUNK_DIM) * CHUNK_DIM;
         let x_base = (i % CHUNK_DIM) * CHUNK_DIM;
@@ -22,7 +24,8 @@ fn main() -> Result<(), Error> {
                 let u = (x_base + x_offset) as f32 / W as f32;
                 let v = (y_base + y_offset) as f32 / H as f32;
                 let dir = lower_left + horizontal * u + vertical * v;
-                chunk[y_offset][x_offset] = vector_color(dir)
+                let ray = Ray::new(origin, dir);
+                chunk[y_offset][x_offset] = vector_color(ray)
             }
         }
     }
@@ -30,7 +33,29 @@ fn main() -> Result<(), Error> {
     Ok(())
 }
 
-fn vector_color(vector: Vec3) -> Rgba {
-    let t = 0.5 * vector.abs().y + 0.5;
-    Rgba::rgb(1.0 - t + 0.5 * t, 1.0 - t + 0.7 * t, 1.0)
+fn vector_color(ray: Ray) -> Rgba {
+    let sphere = Sphere {
+        center: Vec3::new(0.0, 0.0, -1.0),
+        radius: 0.5,
+    };
+    if hit_sphere(ray, sphere) {
+        Rgba::rgb(1.0, 0.0, 0.0)
+    } else {
+        let t = 0.5 * ray.direction.abs().y + 0.5;
+        Rgba::rgb(1.0 - t + 0.5 * t, 1.0 - t + 0.7 * t, 1.0)
+    }
+}
+
+struct Sphere {
+    center: Vec3,
+    radius: f32,
+}
+
+fn hit_sphere(ray: Ray, sphere: Sphere) -> bool {
+    let oc = ray.origin - sphere.center;
+    let a = ray.direction.length_squared();
+    let b = 2.0 * oc.dot(ray.direction);
+    let c = oc.length_squared() - sphere.radius * sphere.radius;
+    let discriminant = b * b - 4.0 * a * c;
+    discriminant > 0.0
 }
