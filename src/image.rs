@@ -4,7 +4,7 @@ use std::path::Path;
 use std::result::Result;
 use thiserror::Error;
 
-const CHUNK_DIM: usize = 32;
+pub const CHUNK_DIM: usize = 32;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -69,16 +69,73 @@ impl Image {
     pub fn chunks_mut(&mut self) -> std::slice::IterMut<Chunk> {
         self.data.iter_mut()
     }
+
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    pub fn height(&self) -> usize {
+        self.height
+    }
 }
 
 #[derive(Debug, Default, Copy, Clone)]
 pub struct Chunk([[Rgba; CHUNK_DIM]; CHUNK_DIM]);
 
+impl std::ops::Index<usize> for Chunk {
+    type Output = [Rgba; CHUNK_DIM];
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
+}
+
+impl std::ops::IndexMut<usize> for Chunk {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.0[index]
+    }
+}
+
 #[derive(Debug, Default, Copy, Clone)]
-pub struct Rgba([f32; 4]);
+pub struct Rgba {
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
+    pub a: f32,
+}
 
 impl Rgba {
+    pub fn rgb(r: f32, g: f32, b: f32) -> Self {
+        Self { r, g, b, a: 1.0 }
+    }
+
     pub fn as_tuple(&self) -> (f32, f32, f32, f32) {
-        (self.0[0], self.0[1], self.0[2], self.0[3])
+        (self.r, self.g, self.b, self.a)
+    }
+}
+
+impl std::ops::Index<usize> for Rgba {
+    type Output = f32;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        match index {
+            0 => &self.r,
+            1 => &self.g,
+            2 => &self.b,
+            3 => &self.a,
+            _ => panic!(),
+        }
+    }
+}
+
+impl std::ops::IndexMut<usize> for Rgba {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match index {
+            0 => &mut self.r,
+            1 => &mut self.g,
+            2 => &mut self.b,
+            3 => &mut self.a,
+            _ => panic!(),
+        }
     }
 }

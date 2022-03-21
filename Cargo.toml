@@ -6,4 +6,5 @@ edition = "2021"
 [dependencies]
 exr = "1.4.1"
 thiserror = "1"
-cgmath = "0.18"
+# cgmath = "0.18"
+glam = "0.20.2"
