@@ -29,6 +29,16 @@ fn main() -> Result<(), Error> {
                 radius: 100.0,
                 material: 1,
             },
+            Sphere {
+                center: Vec3::new(-1.0, 0.0, -1.0),
+                radius: 0.5,
+                material: 0,
+            },
+            Sphere {
+                center: Vec3::new(1.0, 0.0, -1.0),
+                radius: 0.5,
+                material: 1,
+            },
         ],
         materials: vec![
             MaterialKind::Lambert(Lambert {
@@ -70,7 +80,25 @@ fn main() -> Result<(), Error> {
 }
 
 fn ray_color(ray: Ray, world: &World) -> Vec4 {
-    let hit = world.objects.iter().find_map(|&sphere| sphere.hit(ray));
+    let hit = world
+        .objects
+        .iter()
+        .fold(None, |closest_so_far: Option<Hit>, &sphere| {
+            let hit = sphere.hit(ray);
+            match closest_so_far {
+                Some(closest_so_far) => match hit {
+                    Some(hit) => {
+                        if closest_so_far.distance < hit.distance {
+                            Some(closest_so_far)
+                        } else {
+                            Some(hit)
+                        }
+                    }
+                    None => Some(closest_so_far),
+                },
+                None => hit,
+            }
+        });
     match hit {
         Some(hit) => {
             let material = world.materials[hit.material];
