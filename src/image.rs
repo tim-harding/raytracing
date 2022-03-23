@@ -1,5 +1,5 @@
 use exr::prelude::Error as ExrError;
-use glam::{Vec3, Vec4};
+use glam::Vec4;
 use std::io::Error as IoError;
 use std::path::Path;
 use std::result::Result;

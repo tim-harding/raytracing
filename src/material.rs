@@ -44,7 +44,7 @@ pub struct Lambert {
 }
 
 impl Material for Lambert {
-    fn scatter(&self, ray: Ray, hit: Hit) -> Scatter {
+    fn scatter(&self, _ray: Ray, hit: Hit) -> Scatter {
         const CANCEL_PROBABILITY: f32 = 63.0 / 64.0;
         if random() > CANCEL_PROBABILITY {
             Scatter {

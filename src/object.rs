@@ -18,14 +18,6 @@ pub struct Sphere {
 }
 
 impl Sphere {
-    pub fn new(center: Vec3, radius: f32, material: usize) -> Self {
-        Self {
-            center,
-            radius,
-            material,
-        }
-    }
-
     pub fn hit(&self, ray: Ray) -> Option<Hit> {
         let oc = ray.origin - self.center;
         let a = ray.direction.length_squared();
