@@ -82,8 +82,13 @@ fn ray_color(ray: Ray, world: &World) -> Vec4 {
             }
         }
         None => {
-            let t = 0.5 * ray.direction.normalize().y + 0.5;
-            Vec4::new(1.0 - t + 0.5 * t, 1.0 - t + 0.7 * t, 1.0, 1.0)
+            let t = 0.5 * ray.direction.x + 0.5;
+            let t = t * t;
+            let t = t * t;
+            let warm = Vec3::new(2.0, 1.8, 1.6);
+            let cool = Vec3::new(0.0, 0.2, 0.3);
+            let color = cool.lerp(warm, t);
+            color.extend(1.0)
         }
     }
 }
